@@ -2,7 +2,8 @@
 USING_NS_CC;
 
 #define LEVELNUMBER 1
-#define ATTACKNUMBER 2
+#define ATTACKNUMBER 3
+#define ACTIONNUMBER 5
 
 
 class player {
@@ -22,4 +23,12 @@ public:
 	player();
 	void setAttack(int _attack);
 	void clearAttack();
+	
+	bool isRunning = false;
+	void clearRunning();
+	bool isStanding = false;
+	void clearStanding();
+
+	Point attackPoint[ATTACKNUMBER];
+
 };

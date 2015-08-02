@@ -4,7 +4,7 @@
 USING_NS_CC;
 
 #define LEVELNUMBER 1
-#define ATTACKNUMBER 2
+#define ENEMY_ATTACKNUMBER 2
 
 class enemy{
 public:
@@ -23,7 +23,7 @@ public:
 	float HP = 100.0f;
 
 	Vector<SpriteFrame*> attackFrame;
-	int frameNumber[LEVELNUMBER][ATTACKNUMBER];
+	int frameNumber[LEVELNUMBER][ENEMY_ATTACKNUMBER];
 	enemy();
 	void setAttack(int _attack);
 	void clearAttack();

@@ -68,6 +68,11 @@ public:
 
 	Vector<SpriteFrame*> playerAttackFrame[ATTACKNUMBER];
 	int playerFrameNumber[LEVELNUMBER][ATTACKNUMBER];
+
+
+	Vector<SpriteFrame*> playerActionFrame[ACTIONNUMBER];
+	int playerActionNumber[LEVELNUMBER][ACTIONNUMBER];
+
 	void setPlayerFrameNumber();
 
 	void initDamage();

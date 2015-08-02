@@ -18,3 +18,10 @@ player::player(){
 	isAttacking = false;
 }
 
+void player::clearRunning(){
+	isRunning = false;
+}
+
+void player::clearStanding(){
+	isStanding = false;
+}

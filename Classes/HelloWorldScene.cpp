@@ -120,14 +120,11 @@ bool HelloWorld::init(PhysicsWorld* world,int _level)
 
 	preLoadAnimation();
 
-	auto backItem = MenuItemImage::create("images/CloseNormal.png", "images/CloseSelected.png", CC_CALLBACK_0(HelloWorld::backToChoseLevel, this));
+	auto backItem = MenuItemImage::create("images/CloseNormal.png", "images/CloseSelected.png", CC_CALLBACK_0(HelloWorld::toPopup, this));
 	//auto pauseItem = MenuItemImage::create("CloseNormal.png", "CloseSelected.png", CC_CALLBACK_0(HelloWorld::pauseScene, this));
-	auto popupItem = MenuItemImage::create("images/CloseNormal.png", "images/CloseSelected.png", CC_CALLBACK_0(HelloWorld::toPopup, this));
-	//pauseItem->setPosition(-backItem->getContentSize().width,0);
-	popupItem->setPosition(0,0);
 	backItem->setPosition(backItem->getContentSize().width,0);
 
-	auto backmenu = Menu::create(popupItem,backItem,NULL);
+	auto backmenu = Menu::createWithItem(backItem);
 	backmenu->setPosition(visibleSize.width - backItem->getContentSize().width*2, visibleSize.height - backItem->getContentSize().height / 2);
 	addChild(backmenu, 10);
 
@@ -198,12 +195,20 @@ void HelloWorld::setEnemyFrameNumber(){
 	enemyFrameNumber[0][1] = 7;
 }
 void HelloWorld::setPlayerFrameNumber(){
-	playerFrameNumber[0][0] = 7;
+	playerFrameNumber[0][0] = 0;
 	playerFrameNumber[0][1] = 12;
+	playerFrameNumber[0][2] = 7;
+
+	playerActionNumber[0][0] = 8;
+	playerActionNumber[0][1] = 8;
+	playerActionNumber[0][2] = 8;
+	playerActionNumber[0][3] = 11;
+	playerActionNumber[0][4] = 7;
 }
 
 void HelloWorld::initDamage(){
-	playerDamage.push_back(34.0f);
+	playerDamage.push_back(51.0f);
+	playerDamage.push_back(101.0f);
 	playerDamage.push_back(101.0f);
 	enemyDamage.push_back(26);
 	enemyDamage.push_back(26);
@@ -218,8 +223,18 @@ void HelloWorld::preLoadAnimation(){
 			playerAttackFrame[i].pushBack(SpriteFrame::create(attackPath->getCString(), Rect(0, 0, tempPlayerSprite->getContentSize().width, tempPlayerSprite->getContentSize().height)));
 		}
 	}
+
+	for (int i = 0; i < ACTIONNUMBER; i++){
+		playerActionFrame[i].reserve(playerActionNumber[level][i]);
+		for (int j = 0; j < playerActionNumber[level][i]; j++){
+			auto actionPath = String::createWithFormat("%s%d%s%d%s%d%s", "images/level", level, "/action", i, "/", j, ".png");
+			auto tempPlayerSprite = Sprite::create(actionPath->getCString());
+			playerActionFrame[i].pushBack(SpriteFrame::create(actionPath->getCString(), Rect(0, 0, tempPlayerSprite->getContentSize().width, tempPlayerSprite->getContentSize().height)));
+		}
+	}
+
 	//enemy
-	for (int i = 0; i < ATTACKNUMBER; i++){
+	for (int i = 0; i < ENEMY_ATTACKNUMBER; i++){
 		enemyAttackFrame[i].reserve(enemyFrameNumber[level][i]);
 		for (int j = 0; j < enemyFrameNumber[level][i]; j++){
 			auto enemyPath = String::createWithFormat("%s%d%s%d%s%d%s", "images/level", level, "/enemy", i, "/",j,".png");
@@ -230,7 +245,7 @@ void HelloWorld::preLoadAnimation(){
 }
 
 void HelloWorld::enemyComing(float dt){
-	int enemyType = (int)(CCRANDOM_0_1() * ATTACKNUMBER);
+	int enemyType = (int)(CCRANDOM_0_1() * ENEMY_ATTACKNUMBER);
 	//int enemyType = 1;
 	enemy* enemy1 = new enemy();
 	auto enemyPath = String::createWithFormat("%s%d%s%d%s", "images/level", level, "/enemy",enemyType,"/0.png");
@@ -278,10 +293,28 @@ void HelloWorld::updatePlayerHP(float dt){
 	float decreaseHP = player1->contactNumber * enemyDamage.at(0)* dt + player1->beHitNumber* enemyDamage.at(1);
 	HPProgess->setPercentage(nowHP-decreaseHP);
 	player1->beHitNumber = 0;
+
+	if (nowHP - decreaseHP <= 0){
+		//toPopup();
+	}
 }
 
 void HelloWorld::playerMove(bool isPressedW, bool isPressedA, bool isPressedD, float time){
-	if (isPressedD) {
+	if (isPressedW && jumped == false){
+			auto _jumpForce = Vec2(0, player1->jumpForce);
+			player1->sprite->getPhysicsBody()->applyImpulse(_jumpForce);
+			jumped = true;
+		}
+	else if (isPressedD) {
+		if (player1->isRunning == false && player1->isAttacking == false){
+			player1->sprite->stopAllActions();
+			player1->isStanding= false;
+
+			auto action = Sequence::create(Animate::create(Animation::createWithSpriteFrames(playerActionFrame[1], 0.1f)), CallFunc::create(CC_CALLBACK_0(player::clearRunning, player1)), NULL);
+			player1->isRunning = true;
+			player1->sprite->runAction(action);
+		}
+
 		if (player1->sprite->getPositionX() >= visibleSize.width / 3){
 			map1->runAction(MoveBy::create(time, Vec2(-player1->moveSpeed * time, 0)));
 			map2->runAction(MoveBy::create(time, Vec2(-player1->moveSpeed * time, 0)));
@@ -292,15 +325,32 @@ void HelloWorld::playerMove(bool isPressedW, bool isPressedA, bool isPressedD, f
 		else{
 			player1->sprite->runAction(MoveBy::create(time, Vec2(player1->moveSpeed * time, 0)));
 		}
+
 	}
 	else if (isPressedA){
+		
+		if (player1->isStanding == false && player1->isAttacking == false){
+			player1->sprite->stopAllActions();
+			player1->isRunning = false;
+			auto action = Sequence::create(Animate::create(Animation::createWithSpriteFrames(playerActionFrame[0], 0.1f)), CallFunc::create(CC_CALLBACK_0(player::clearStanding, player1)), NULL);
+			player1->isStanding = true;
+			player1->sprite->runAction(action);
+		}
 		if (player1->sprite->getPositionX() - player1->moveSpeed*time >= player1->sprite->getContentSize().width / 2 + 5) player1->sprite->runAction(MoveBy::create(time, Vec2(-player1->moveSpeed * time, 0)));
+
 	}
-	if (isPressedW && jumped == false){
-		auto _jumpForce = Vec2(0, player1->jumpForce);
-		player1->sprite->getPhysicsBody()->applyImpulse(_jumpForce);
-		jumped = true;
+	else{
+		if (player1->isStanding == false && player1->isAttacking == false){
+			player1->sprite->stopAllActions();
+			player1->isRunning = false;
+
+			auto action = Sequence::create(Animate::create(Animation::createWithSpriteFrames(playerActionFrame[0], 0.1f)), CallFunc::create(CC_CALLBACK_0(player::clearStanding, player1)), NULL);
+			player1->isStanding = true;
+			player1->sprite->runAction(action);
+			
+		}
 	}
+
 }
 
 void HelloWorld::enemyMove(float time){
@@ -393,13 +443,14 @@ void HelloWorld::updateEnemyBullet(float time){
 }
 
 void HelloWorld::updatePlayerAttackOne(float time){
-	if (player1->attack == 1 && player1->isAttacking){
-		auto tempPos = player1->sprite->getPosition();
+	int index = player1->attack;
+	if (player1->isAttacking && (index == 1 || index == 2)){
+		auto tempPos = player1->attackPoint[index];
 		std::vector<enemy*>::iterator it = enemies.begin();
 		for (; it != enemies.end();it++){
-			if (abs((*it)->sprite->getPositionX() - tempPos.x) <= playerAttackFrame[player1->attack].at(0)->getRect().size.width/2+(*it)->sprite->getContentSize().width && 
-				abs((*it)->sprite->getPositionY()-tempPos.y) <= playerAttackFrame[player1->attack].at(0)->getRect().size.height/2+(*it)->sprite->getContentSize().height){
-				(*it)->HP -= playerDamage.at(1) * time;
+			if (abs((*it)->sprite->getPositionX() - tempPos.x) <= playerAttackFrame[index].at(0)->getRect().size.width/2+(*it)->sprite->getContentSize().width && 
+				abs((*it)->sprite->getPositionY()-tempPos.y) <= playerAttackFrame[index].at(0)->getRect().size.height/2+(*it)->sprite->getContentSize().height){
+				(*it)->HP -= playerDamage.at(index) * time;
 			}
 		}
 	}
@@ -411,6 +462,7 @@ void HelloWorld::updateEnemyHP(float time){
 		if ((*enemyIt)->HP <= 0){
 			(*enemyIt)->sprite->removeFromParentAndCleanup(true);
 			enemyIt = enemies.erase(enemyIt);
+
 		}
 		else{
 			enemyIt++;
@@ -529,10 +581,27 @@ void HelloWorld::playerAttack(Point touchPos){
 	//auto attack1 = Animate::create(Animation::createWithSpriteFrames(attack1Frame, 0.4f));
 	auto animateSprite = Sprite::create();
 	auto actions = Sequence::create(animate, CallFunc::create(CC_CALLBACK_0(player::clearAttack, player1)), CallFunc::create(CC_CALLBACK_0(Sprite::removeFromParentAndCleanup, animateSprite, true)), NULL);
-	animateSprite->setPosition(player1->sprite->getContentSize().width / 2, player1->sprite->getContentSize().height / 2);
-	player1->sprite->addChild(animateSprite);
-	animateSprite->runAction(actions);
-	if (player1->attack == 0){
+	//animateSprite->setPosition(player1->sprite->getContentSize().width / 2, player1->sprite->getContentSize().height / 2);
+	//player1->sprite->addChild(animateSprite);
+
+	if (player1->attack == 1){
+		player1->attackPoint[1] = player1->sprite->getPosition();
+		animateSprite->setPosition(player1->sprite->getContentSize().width / 2, player1->sprite->getContentSize().height / 2);
+		player1->sprite->addChild(animateSprite, 3);
+		animateSprite->runAction(actions);
+	}
+	else if (player1->attack == 2){
+		auto tempPos = Point(touchPos.x, visibleSize.height/3);
+		player1->attackPoint[2] = tempPos;
+		animateSprite->setPosition(touchPos.x, visibleSize.height/3);
+		this->addChild(animateSprite,6);
+		animateSprite->runAction(actions);
+	}
+
+	else if (player1->attack == 0){
+		auto animate0 = Animate::create(Animation::createWithSpriteFrames(playerActionFrame[4],0.1f));
+		auto actions0 = Sequence::create(animate0, CallFunc::create(CC_CALLBACK_0(player::clearAttack, player1)), NULL);
+		player1->sprite->runAction(actions0);
 		auto force = player1->impulse*Vec2(touchPos.x - player1->sprite->getPositionX(), touchPos.y - player1->sprite->getPositionY());
 		bullet* bullet1 = throwBullet(player1->sprite->getPosition(), force);
 		this->addChild(bullet1->sprite,3,BULLET_TAG);
@@ -543,6 +612,9 @@ void HelloWorld::playerAttack(Point touchPos){
 bool HelloWorld::onTouchBegan(Touch* touch, Event* event){
 	if (!player1->isAttacking){
 		player1->isAttacking = true;
+		player1->sprite->stopAllActions();
+		player1->isRunning = false;
+		player1->isStanding = false;
 		playerAttack(touch->getLocation());
 	}
 	log("onTouchBegin");
@@ -557,10 +629,14 @@ void HelloWorld::onTouchEnded(Touch* touch, Event* event){
 }
 void HelloWorld::onKeyPressed(EventKeyboard::KeyCode code, Event* event){
 	if (code == EventKeyboard::KeyCode::KEY_D){
-		if(!isPressedD) isPressedD = true;
+		if (!isPressedD) {
+			isPressedD = true;
+		}
 	}
 	else if (code == EventKeyboard::KeyCode::KEY_A){
-		if (!isPressedA) isPressedA = true;
+		if (!isPressedA) {
+			isPressedA = true;
+		}
 	}
 	else if (code == EventKeyboard::KeyCode::KEY_W){
 		if (!isPressedW) {
@@ -594,22 +670,22 @@ void HelloWorld::backToChoseLevel(){
 }
 
 void HelloWorld::toPopup(){
-	/*
+	auto director = Director::getInstance();
 	RenderTexture* renderTexture = RenderTexture::create(visibleSize.width,visibleSize.height);
 	renderTexture->begin();
 	this->getParent()->visit();
 	renderTexture->end();
-	*/
+	
 	//auto popupScene = Popup::createScene(renderTexture,"images/popupBg.png");
-	auto popup = Popup::create("images/popupBg.png");
-	this->addChild(popup, 10);
-	Action* popupAction = Sequence::create(ScaleTo::create(0.0f, 0.0f),
-									ScaleTo::create(0.06f, 1.05f),
-									ScaleTo::create(0.08f, 0.95f),
-									ScaleTo::create(0.08f, 1.0f), NULL);
-	popup->runAction(popupAction);
-	 //Director::getInstance()->pause();ddd
-	//director->pushScene(director->getRunningScene());
+	//auto popup = Popup::create("images/popupBg.png");
+	//this->addChild(popup, 10);
+	//Action* popupAction = Sequence::create(ScaleTo::create(0.0f, 0.0f),
+	//								ScaleTo::create(0.06f, 1.05f),
+	//								ScaleTo::create(0.08f, 0.95f),
+	//								ScaleTo::create(0.08f, 1.0f), NULL);
+	//popup->runAction(popupAction);
+	 //Director::getInstance()->pause();
+	director->pushScene(Popup::createScene(renderTexture, "images/popupBg.png"));
 	//Director::getInstance()->replaceScene(popupScene);
 }
 

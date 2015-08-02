@@ -1,6 +1,6 @@
 #include "AppDelegate.h"
 //#include "HelloWorldScene.h"
-#include "ChoseLevel.h"
+#include "StartScene.h"
 
 USING_NS_CC;
 
@@ -41,7 +41,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     register_all_packages();
 
     // create a scene. it's an autorelease object
-    auto scene = ChoseLevel::createScene();
+    auto scene = StartScene::createScene();
 
     // run
     director->runWithScene(scene);

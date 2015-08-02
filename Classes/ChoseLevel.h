@@ -2,6 +2,7 @@
 #define _CHOSELEVEL_
 #include <cocos2d.h>
 #include "HelloWorldScene.h"
+#include "startScene.h"
 USING_NS_CC;
 
 class ChoseLevel : public Layer
@@ -14,5 +15,8 @@ public:
 	virtual bool init(PhysicsWorld* world);
 	PhysicsWorld* m_world;
 	void selectLevel(int selectedLevel);
+
+	void backHome();
+
 };
 #endif
