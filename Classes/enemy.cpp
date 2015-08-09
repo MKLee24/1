@@ -15,11 +15,12 @@ enemy::enemy(){
 	impulse = 38;
 	attack = 0;
 	isAttacking = false;
+	isDying = 0;
 }
 
 void enemy::enemyMove(Point playerPos, Size visibleSize, Size playerSize, float time){
 	auto enemyPos = sprite->getPosition();
-	if (attack == 0){
+	if (attack == 0 || attack == 2){
 		if (playerPos.x >= enemyPos.x && playerPos.x - enemyPos.x >= (playerSize.width / 2 + sprite->getContentSize().width / 2)){
 			sprite->runAction(MoveBy::create(time, Vec2(moveSpeed * time, 0)));
 			if (sprite->isFlippedX()) sprite->setFlippedX(false);
@@ -50,6 +51,10 @@ void enemy::enemyMove(Point playerPos, Size visibleSize, Size playerSize, float 
 			if (sprite->isFlippedX()) sprite->setFlippedX(false);
 		}
 	}
+}
+
+void enemy::canEnemyRemove(){
+	isDying = 2;
 }
 
 

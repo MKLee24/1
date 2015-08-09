@@ -10,6 +10,9 @@ class ChoseLevel : public Layer
 public:
 	Size visibleSize;
 	Point origin;
+
+	int unlock = 1;
+
 	static Scene* createScene();
 	static ChoseLevel* create(PhysicsWorld* world);
 	virtual bool init(PhysicsWorld* world);

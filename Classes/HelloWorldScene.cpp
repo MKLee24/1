@@ -158,7 +158,7 @@ bool HelloWorld::init(PhysicsWorld* world,int _level)
 	enemyComing(1.0f);
 	
 
-	this->schedule(schedule_selector(HelloWorld::enemyComing), 5.0f);
+	this->schedule(schedule_selector(HelloWorld::enemyComing), 3.0f);
 	this->schedule(schedule_selector(HelloWorld::enemyAttack), 2.0f);
 	this->scheduleUpdate();
 	
@@ -181,18 +181,31 @@ bool HelloWorld::init(PhysicsWorld* world,int _level)
 void HelloWorld::preLoadMusic(){
 	auto bgMusicPath = String::createWithFormat("%s%d%s", "sounds/bgMusic_", level, ".mp3");
 	SimpleAudioEngine::getInstance()->preloadBackgroundMusic(bgMusicPath->getCString());
+	
+	SimpleAudioEngine::getInstance()->preloadEffect("sounds/effect0.wav");
+	SimpleAudioEngine::getInstance()->preloadEffect("sounds/effect1.wav");
+
+	SimpleAudioEngine::getInstance()->setBackgroundMusicVolume(0.1f);
+	SimpleAudioEngine::getInstance()->setEffectsVolume(1.0f);
 }
 void HelloWorld::playBgMusic(){
 	auto bgMusicPath = String::createWithFormat("%s%d%s", "sounds/bgMusic_", level, ".mp3");
 	SimpleAudioEngine::getInstance()->playBackgroundMusic(bgMusicPath->getCString(), true);
 }
-void HelloWorld::stopBgMusic(){
-	SimpleAudioEngine::getInstance()->stopBackgroundMusic(true);
+void HelloWorld::pauseBgMusic(){
+	SimpleAudioEngine::getInstance()->pauseBackgroundMusic();
+}
+
+void HelloWorld::playerEffectMusic(int i){
+	auto effectPath = String::createWithFormat("%s%d%s","sounds/effect",i,".wav");
+	SimpleAudioEngine::getInstance()->playEffect(effectPath->getCString(),false);
 }
 
 void HelloWorld::setEnemyFrameNumber(){
-	enemyFrameNumber[0][0] = 1;
-	enemyFrameNumber[0][1] = 7;
+	enemyFrameNumber[0][0] = 8;
+	enemyFrameNumber[0][1] = 4;
+	enemyFrameNumber[0][2] = 6;
+	enemyFrameNumber[0][3] = 15;
 }
 void HelloWorld::setPlayerFrameNumber(){
 	playerFrameNumber[0][0] = 0;
@@ -210,6 +223,8 @@ void HelloWorld::initDamage(){
 	playerDamage.push_back(51.0f);
 	playerDamage.push_back(101.0f);
 	playerDamage.push_back(101.0f);
+	enemyDamage.push_back(26);
+	enemyDamage.push_back(26);
 	enemyDamage.push_back(26);
 	enemyDamage.push_back(26);
 }
@@ -244,26 +259,55 @@ void HelloWorld::preLoadAnimation(){
 	}
 }
 
+void HelloWorld::playerParticle(String* plist, String* texture, Point position){
+	ParticleSystemQuad* particle = ParticleSystemQuad::create(plist->getCString());
+	particle->setTexture(TextureCache::sharedTextureCache()->addImage(texture->getCString()));
+	log(plist->getCString());
+	log(texture->getCString());
+	particle->setDuration(0.3f);
+	particle->setAutoRemoveOnFinish(true);
+	particle->setPosition(position);
+	this->addChild(particle, 10);
+
+}
+
 void HelloWorld::enemyComing(float dt){
-	int enemyType = (int)(CCRANDOM_0_1() * ENEMY_ATTACKNUMBER);
-	//int enemyType = 1;
-	enemy* enemy1 = new enemy();
-	auto enemyPath = String::createWithFormat("%s%d%s%d%s", "images/level", level, "/enemy",enemyType,"/0.png");
-	enemy1->sprite = Sprite::create(enemyPath->getCString());
-	enemy1->attack = enemyType;
-	if (enemy1->attack == 0) enemy1->moveSpeed *= 2;
-	enemy1->distance = CCRANDOM_0_1() + 3;
-	enemy1->sprite->setPosition(visibleSize.width-enemy1->sprite->getContentSize().width/2,visibleSize.height/6+enemy1->sprite->getContentSize().height/2+5);
-	auto enemyBody = PhysicsBody::createBox(enemy1->sprite->getContentSize());
-	enemyBody->setCategoryBitmask(0x01);
-	enemyBody->setCollisionBitmask(0x04);
-	enemyBody->setContactTestBitmask(0xFF);
-	enemyBody->getShape(0)->setMass(10000);
-	enemyBody->getShape(0)->setRestitution(0.0f);
-	enemyBody->getShape(0)->setTag(ENEMY_TAG_ZERO+enemyType);
-	enemy1->sprite->setPhysicsBody(enemyBody);
-	addChild(enemy1->sprite,2,ENEMY_TAG_ZERO+enemyType);
-	enemies.push_back(enemy1);
+	int num = (int)(abs(CCRANDOM_0_1() * 2-0.1)+1);
+	while (num--){
+		int enemyType = (int)(CCRANDOM_0_1() * ENEMY_ATTACKNUMBER);
+		//int enemyType = 1;
+		enemy* enemy1 = new enemy();
+		auto enemyPath = String::createWithFormat("%s%d%s%d%s", "images/level", level, "/enemy", enemyType, "/0.png");
+		enemy1->sprite = Sprite::create(enemyPath->getCString());
+		enemy1->attack = enemyType;
+		if (enemy1->attack == 0) enemy1->moveSpeed *= 2;
+		enemy1->distance = CCRANDOM_0_1() + 3;
+		auto enemyBody = PhysicsBody::createBox(enemy1->sprite->getContentSize());
+		enemyBody->setCategoryBitmask(0x01);
+		enemyBody->setCollisionBitmask(0x04);
+		enemyBody->setContactTestBitmask(0xFF);
+		enemyBody->getShape(0)->setMass(10000);
+		enemyBody->getShape(0)->setRestitution(0.0f);
+		enemyBody->getShape(0)->setTag(ENEMY_TAG_ZERO + enemyType);
+		enemy1->sprite->setPhysicsBody(enemyBody);
+		addChild(enemy1->sprite, 2, ENEMY_TAG_ZERO + enemyType);
+		auto tempSize = enemy1->sprite->getContentSize();
+		if (enemy1->attack == 0) enemy1->sprite->setPosition((visibleSize.width-tempSize.width)*CCRANDOM_0_1()+tempSize.width/2,
+											visibleSize.height / 6 +tempSize.height / 2 + 5);
+		else if (enemy1->attack == 2){
+			auto temp = int(abs(CCRANDOM_0_1() * 2-0.1));
+			if (temp == 1) enemy1->sprite->setPosition(visibleSize.width - enemy1->sprite->getContentSize().width / 2, visibleSize.height / 6 + enemy1->sprite->getContentSize().height / 2 + 5);
+			else enemy1->sprite->setPosition(enemy1->sprite->getContentSize().width / 2, visibleSize.height / 6 + enemy1->sprite->getContentSize().height / 2 + 5);
+		}
+		else enemy1->sprite->setPosition(visibleSize.width - enemy1->sprite->getContentSize().width / 2, visibleSize.height / 6 + enemy1->sprite->getContentSize().height / 2 + 5);
+
+		if (enemy1->attack != 3){
+			auto tempAnimate = Animate::create(Animation::createWithSpriteFrames(enemyAttackFrame[enemy1->attack], 0.1f));
+			enemy1->sprite->runAction(RepeatForever::create(tempAnimate));
+		}
+
+		enemies.push_back(enemy1);
+	}
 }
 
 bullet* HelloWorld::throwBullet(Point startPosition, Vec2 force){
@@ -284,13 +328,9 @@ bullet* HelloWorld::throwBullet(Point startPosition, Vec2 force){
 }
 
 void HelloWorld::updatePlayerHP(float dt){
-	if (player1->attack == 1 && player1->isAttacking)  {
-		player1->beHitNumber = 0;
-		return;
-	}
 	auto HPProgess = (ProgressTimer*)(hpLayer->getChildByTag(HPTAG));
 	auto nowHP = HPProgess->getPercentage();
-	float decreaseHP = player1->contactNumber * enemyDamage.at(0)* dt + player1->beHitNumber* enemyDamage.at(1);
+	float decreaseHP = player1->contactNumber * enemyDamage.at(1)* dt + player1->beHitNumber* enemyDamage.at(2);
 	HPProgess->setPercentage(nowHP-decreaseHP);
 	player1->beHitNumber = 0;
 
@@ -306,6 +346,7 @@ void HelloWorld::playerMove(bool isPressedW, bool isPressedA, bool isPressedD, f
 			jumped = true;
 		}
 	else if (isPressedD) {
+		if (player1->sprite->isFlippedX() && !player1->isAttacking) player1->sprite->setFlipX(false);
 		if (player1->isRunning == false && player1->isAttacking == false){
 			player1->sprite->stopAllActions();
 			player1->isStanding= false;
@@ -315,7 +356,7 @@ void HelloWorld::playerMove(bool isPressedW, bool isPressedA, bool isPressedD, f
 			player1->sprite->runAction(action);
 		}
 
-		if (player1->sprite->getPositionX() >= visibleSize.width / 3){
+		if (player1->sprite->getPositionX() >= visibleSize.width / 2){
 			map1->runAction(MoveBy::create(time, Vec2(-player1->moveSpeed * time, 0)));
 			map2->runAction(MoveBy::create(time, Vec2(-player1->moveSpeed * time, 0)));
 			for (auto tempEnemy : enemies){
@@ -328,15 +369,23 @@ void HelloWorld::playerMove(bool isPressedW, bool isPressedA, bool isPressedD, f
 
 	}
 	else if (isPressedA){
-		
-		if (player1->isStanding == false && player1->isAttacking == false){
+		if (!player1->sprite->isFlippedX() && !player1->isAttacking) player1->sprite->setFlipX(true);
+		if (player1->isRunning == false && player1->isAttacking == false){
 			player1->sprite->stopAllActions();
-			player1->isRunning = false;
-			auto action = Sequence::create(Animate::create(Animation::createWithSpriteFrames(playerActionFrame[0], 0.1f)), CallFunc::create(CC_CALLBACK_0(player::clearStanding, player1)), NULL);
-			player1->isStanding = true;
+			player1->isStanding = false;
+			auto action = Sequence::create(Animate::create(Animation::createWithSpriteFrames(playerActionFrame[1], 0.1f)), CallFunc::create(CC_CALLBACK_0(player::clearRunning, player1)), NULL);
+			player1->isRunning = true;
 			player1->sprite->runAction(action);
 		}
 		if (player1->sprite->getPositionX() - player1->moveSpeed*time >= player1->sprite->getContentSize().width / 2 + 5) player1->sprite->runAction(MoveBy::create(time, Vec2(-player1->moveSpeed * time, 0)));
+		//if (player1->isStanding == false && player1->isAttacking == false){
+		//	player1->sprite->stopAllActions();
+		//	player1->isRunning = false;
+		//	auto action = Sequence::create(Animate::create(Animation::createWithSpriteFrames(playerActionFrame[0], 0.1f)), CallFunc::create(CC_CALLBACK_0(player::clearStanding, player1)), NULL);
+		//	player1->isStanding = true;
+		//	player1->sprite->runAction(action);
+		//}
+		//if (player1->sprite->getPositionX() - player1->moveSpeed*time >= player1->sprite->getContentSize().width / 2 + 5) player1->sprite->runAction(MoveBy::create(time, Vec2(-player1->moveSpeed * time, 0)));
 
 	}
 	else{
@@ -352,6 +401,7 @@ void HelloWorld::playerMove(bool isPressedW, bool isPressedA, bool isPressedD, f
 	}
 
 }
+
 
 void HelloWorld::enemyMove(float time){
 	auto playerPos = player1->sprite->getPosition();
@@ -406,6 +456,8 @@ void HelloWorld::updateBullet(float time){
 		}
 
 		if (needRemoveBullet){
+			playerParticle( String::create("images/particle/particle1.plist"), String::create("images/particle/spiral.png"), tempPosition);
+			playerEffectMusic(0);
 			tempBullet->removeFromParentAndCleanup(true);
 			it = bullets.erase(it);/////////////////////////////////////////////remeber
 		}
@@ -428,7 +480,7 @@ void HelloWorld::updateEnemyBullet(float time){
 		else if (tempPosition.y >= visibleSize.height - tempBullet->getContentSize().height / 2 - 1) needRemoveBullet = true;
 		else if (abs(player1->sprite->getPositionX() - tempPosition.x) <= (player1->sprite->getContentSize().width / 2 + tempBullet->getContentSize().width / 2) &&
 			abs(player1->sprite->getPositionY() - tempPosition.y) <= (player1->sprite->getContentSize().height / 2 + tempBullet->getContentSize().height / 2)){
-			player1->beHitNumber++;
+			if(!(player1->isAttacking&&player1->attack==1)) player1->beHitNumber++;
 			needRemoveBullet = true;
 		}
 
@@ -438,6 +490,28 @@ void HelloWorld::updateEnemyBullet(float time){
 		}
 		else{
 			it++;
+		}
+	}
+}
+
+void HelloWorld::updateEnemyAttack(float time){
+	std::vector<enemy*>::iterator it = enemies.begin();
+	for (; it != enemies.end(); it++){
+		auto enemyPos = (*it)->sprite->getPosition();
+		if ((*it)->attack == 3 && (*it)->isDying == 0 && abs(enemyPos.x - player1->sprite->getPositionX()) <= (*it)->sprite->getContentSize().width / 2 + player1->sprite->getContentSize().width / 2
+			&& abs(enemyPos.y - player1->sprite->getPositionY()) <= (*it)->sprite->getContentSize().height / 2 + player1->sprite->getContentSize().height / 2){
+			(*it)->isDying = 1;
+			(*it)->HP = -1;
+			auto tempEnemy = (*it);
+			auto seq3 = Sequence::create(Animate::create(Animation::createWithSpriteFrames(enemyAttackFrame[tempEnemy->attack], 0.1f)),
+				CallFunc::create(CC_CALLBACK_0(enemy::canEnemyRemove,tempEnemy)),NULL);
+			tempEnemy->sprite->runAction(seq3);
+		}
+		else if ((*it)->attack == 0 && (*it)->isDying == 1){
+			auto tempEnemy = (*it);
+			auto seq0 = Sequence::create(TintTo::create(1.5f, Color3B::RED),
+				CallFunc::create(CC_CALLBACK_0(enemy::canEnemyRemove, tempEnemy)),NULL);
+			tempEnemy->sprite->runAction(seq0);
 		}
 	}
 }
@@ -460,9 +534,41 @@ void HelloWorld::updateEnemyHP(float time){
 	std::vector<enemy*>::iterator enemyIt = enemies.begin();
 	for (; enemyIt != enemies.end();){
 		if ((*enemyIt)->HP <= 0){
-			(*enemyIt)->sprite->removeFromParentAndCleanup(true);
-			enemyIt = enemies.erase(enemyIt);
+			if ((*enemyIt)->attack == 0 ){
+				log(String::createWithFormat("%d",(*enemyIt)->isDying)->getCString());
+				if ((*enemyIt)->isDying == 0) {
+					(*enemyIt)->isDying = 1;
+					enemyIt++; 
+				}
+				else if ((*enemyIt)->isDying == 2){
+					auto tempPos = (*enemyIt)->sprite->getPosition();
+					(*enemyIt)->sprite->removeFromParentAndCleanup(true);
+					enemyIt = enemies.erase(enemyIt);
+					playerEffectMusic(1);
+					playerParticle(String::create("images/particle/particle1.plist"),String::create("images/particle/scull.png"),tempPos);
+				}
+				else{
+					enemyIt++;
+				}
+			}
 
+			else if ((*enemyIt)->attack == 3){
+				if ((*enemyIt)->isDying == 2){
+					auto tempPos = (*enemyIt)->sprite->getPosition();
+					(*enemyIt)->sprite->removeFromParentAndCleanup(true);
+					enemyIt = enemies.erase(enemyIt);
+					playerEffectMusic(1);
+					playerParticle(String::create("images/particle/particle1.plist"), String::create("images/particle/scull.png"), tempPos);
+				}
+				else{
+					enemyIt++;
+				}
+			}
+
+			else{
+				(*enemyIt)->sprite->removeFromParentAndCleanup(true);
+				enemyIt = enemies.erase(enemyIt);
+			}
 		}
 		else{
 			enemyIt++;
@@ -495,6 +601,8 @@ void HelloWorld::update(float time){
 
 	//updateEnemyBullet
 	updateEnemyBullet(time);
+
+	updateEnemyAttack(time);
 
 	updatePlayerAttackOne(time);
 
@@ -547,7 +655,7 @@ bool HelloWorld::onContactBegin(PhysicsContact& contact){
 		isPressedW = false;
 		jumped = false;
 	}
-	else if ((a*b) == PLAYER_TAG*ENEMY_TAG_ZERO){
+	else if ((a*b) == PLAYER_TAG*(ENEMY_TAG_ZERO+2)){
 		player1->contactNumber++;
 	}
 	auto temp = String::createWithFormat("%d", player1->contactNumber);
@@ -563,7 +671,7 @@ void HelloWorld::onContactSeperate(PhysicsContact& contact){
 	if ((a * b) == PLAYER_TAG * EDGE_TAG){
 		isContact = false;
 	}
-	else if ((a*b) == PLAYER_TAG * ENEMY_TAG_ZERO){
+	else if ((a*b) == PLAYER_TAG * (ENEMY_TAG_ZERO+2)){
 		player1->contactNumber--;
 	}
 	log("onContactSeperate");
@@ -576,6 +684,9 @@ void HelloWorld::particleTest(){
 }
 
 void HelloWorld::playerAttack(Point touchPos){
+	if (touchPos.x > player1->sprite->getPositionX() && player1->sprite->isFlippedX()) player1->sprite->setFlipX(false);
+	else if (touchPos.x <= player1->sprite->getPositionX() && !player1->sprite->isFlippedX()) player1->sprite->setFlipX(true);
+
 	auto animation = Animation::createWithSpriteFrames(playerAttackFrame[player1->attack], 0.1f);
 	auto animate = Animate::create(animation);
 	//auto attack1 = Animate::create(Animation::createWithSpriteFrames(attack1Frame, 0.4f));
@@ -587,7 +698,7 @@ void HelloWorld::playerAttack(Point touchPos){
 	if (player1->attack == 1){
 		player1->attackPoint[1] = player1->sprite->getPosition();
 		animateSprite->setPosition(player1->sprite->getContentSize().width / 2, player1->sprite->getContentSize().height / 2);
-		player1->sprite->addChild(animateSprite, 3);
+		player1->sprite->addChild(animateSprite, 1);
 		animateSprite->runAction(actions);
 	}
 	else if (player1->attack == 2){
@@ -603,11 +714,14 @@ void HelloWorld::playerAttack(Point touchPos){
 		auto actions0 = Sequence::create(animate0, CallFunc::create(CC_CALLBACK_0(player::clearAttack, player1)), NULL);
 		player1->sprite->runAction(actions0);
 		auto force = player1->impulse*Vec2(touchPos.x - player1->sprite->getPositionX(), touchPos.y - player1->sprite->getPositionY());
+		if (abs(force.x) > abs(force.y)) force.x *= 1.5;
+		else force.y *= 1.5;
 		bullet* bullet1 = throwBullet(player1->sprite->getPosition(), force);
 		this->addChild(bullet1->sprite,3,BULLET_TAG);
 		bullets.push_back(bullet1);
 	}
 }
+
 
 bool HelloWorld::onTouchBegan(Touch* touch, Event* event){
 	if (!player1->isAttacking){
@@ -666,7 +780,7 @@ void HelloWorld::onKeyReleased(EventKeyboard::KeyCode code, Event* event){
 void HelloWorld::backToChoseLevel(){
 	auto scene = ChoseLevel::createScene();
 	Director::getInstance()->replaceScene(CCTransitionCrossFade::create(1.0f, scene));
-	stopBgMusic();
+	pauseBgMusic();
 }
 
 void HelloWorld::toPopup(){

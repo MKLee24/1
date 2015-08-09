@@ -18,6 +18,7 @@ ChoseLevel* ChoseLevel::create(PhysicsWorld* world){
 	return NULL;
 }
 
+
 bool ChoseLevel::init(PhysicsWorld* world){
 	if (!Layer::init()){
 		return false;
@@ -25,6 +26,8 @@ bool ChoseLevel::init(PhysicsWorld* world){
 	m_world = world;
 	visibleSize = Director::getInstance()->getVisibleSize();
 	origin = Director::getInstance()->getVisibleOrigin();
+
+	unlock = 2;
 
 	Sprite* bgImage = Sprite::create("images/bg.png");
 	bgImage->setPosition(visibleSize.width/2, visibleSize.height/2);
@@ -55,7 +58,8 @@ bool ChoseLevel::init(PhysicsWorld* world){
 
 	Vector<MenuItem*> levels;
 	MenuItemSprite* levelItem;
-	for (int i = 0; i < LEVELNUMBER; i++){
+	/*
+	for (int i = 0; i < unlock; i++){
 		auto normalSprite = Sprite::create("images/levelImage.png");
 		auto selectedSprite = Sprite::create("images/levelImage.png");
 		selectedSprite->setOpacity(200);
@@ -67,20 +71,32 @@ bool ChoseLevel::init(PhysicsWorld* world){
 		levelLabel->setPosition(levelItem->getContentSize().width/2, levelItem->getContentSize().height/2);
 		levelItem->addChild(levelLabel);
 		levels.pushBack(levelItem);
-	}
+	}*/
+	
+	int count = 0;
 
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 2; j++){
-			if (i == 0 && j == 0) continue;
 			auto normalSprite = Sprite::create("images/levelImage.png");
 			auto selectedSprite = Sprite::create("images/levelImage.png");
 			selectedSprite->setOpacity(200);
 			levelItem = MenuItemSprite::create(normalSprite, selectedSprite);
 			levelItem->setPosition(i*levelItem->getContentSize().width*3/2, -j*levelItem->getContentSize().height*3/2);
 
-			auto lock = Sprite::create("images/locked.png");
-			lock->setPosition(levelItem->getContentSize().width/2, levelItem->getContentSize().height/2);
-			levelItem->addChild(lock);
+			if (count < unlock){
+				levelItem->setCallback(CC_CALLBACK_0(ChoseLevel::selectLevel, this, i));
+				auto levelStr = String::createWithFormat("%d", count + 1);
+				auto levelLabel = Label::createWithTTF(levelStr->getCString(), "fonts/arial.ttf", 40);
+				levelLabel->setPosition(levelItem->getContentSize().width / 2, levelItem->getContentSize().height / 2);
+				levelItem->addChild(levelLabel);
+				count++;
+			}
+			else{
+				auto lock = Sprite::create("images/locked.png");
+				lock->setPosition(levelItem->getContentSize().width / 2, levelItem->getContentSize().height / 2);
+				levelItem->addChild(lock);
+			}
+
 			levels.pushBack(levelItem);
 		}
 	}

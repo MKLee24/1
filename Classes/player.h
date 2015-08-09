@@ -15,6 +15,7 @@ public:
 	float impulse;
 	int attack = 0;
 	bool isAttacking = false;
+	bool jumped = false;
 
 	int beHitNumber = 0;
 

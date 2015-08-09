@@ -62,8 +62,8 @@ public:
 	std::vector<enemy*> enemies;
 	std::vector<bullet*> enemyBullets;
 
-	Vector<SpriteFrame*> enemyAttackFrame[ATTACKNUMBER];
-	int enemyFrameNumber[LEVELNUMBER][ATTACKNUMBER];
+	Vector<SpriteFrame*> enemyAttackFrame[ENEMY_ATTACKNUMBER];
+	int enemyFrameNumber[LEVELNUMBER][ENEMY_ATTACKNUMBER];
 	void setEnemyFrameNumber();
 
 	Vector<SpriteFrame*> playerAttackFrame[ATTACKNUMBER];
@@ -87,7 +87,9 @@ public:
 
 	void preLoadMusic();
 	void playBgMusic();
-	void stopBgMusic();
+	void pauseBgMusic();
+	void playerEffectMusic(int i);
+	void playerParticle(String* plist, String* texture, Point position);
 
 	void preLoadAnimation();
 
@@ -98,6 +100,8 @@ public:
 	void playerAttack(Point touchPos);
 	void enemyMove(float time);
 	void enemyAttack(float time);
+	void particleMove(float time);
+
 
 	void update(float time);
 	void updatePlayerHP(float dt);
@@ -105,6 +109,7 @@ public:
 	void updateBullet(float time);
 	void updateEnemyBullet(float time);
 	void updatePlayerAttackOne(float time);
+	void updateEnemyAttack(float time);
 
 	void onTouchEvent();
 	void onKeyBoardEvent();
